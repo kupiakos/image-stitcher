@@ -156,7 +156,8 @@ class ImageStitcher:
             return_predecessors=True,
         )[1]
         log.debug('Parent matrix:\n%s', parents)
-        Hs = self._calculate_total_homographies(parents)
+        next_H = self._calculate_relative_homographies(parents)
+        Hs = self._calculate_total_homographies(parents, next_H)
         all_new_corners = self._calculate_new_corners(Hs)
         base_shift, base_size = np.array(self._calculate_bounds(all_new_corners))
         order = self._calculate_draw_order(parents)
@@ -195,7 +196,7 @@ class ImageStitcher:
         all_new_corners = []
         for image, H in zip(self._images, Hs):
             corners = image_corners(image.image)
-            new_corners = cv2.perspectiveTransform(np.array([corners]), H)
+            new_corners = cv2.perspectiveTransform(corners.reshape(1, 4, 2), H)
             if new_corners.shape[0] != 1:
                 raise ValueError('Could not calculate bounds for %s!' % image.name)
             new_corners = new_corners[0]
@@ -228,11 +229,9 @@ class ImageStitcher:
         log.info('Draw order: %s', ', '.join(self._images[i].name for i in order))
         return order
 
-    def _calculate_total_homographies(self, parents):
-        """Calculate the full homography each picture will have for the final image"""
-        c = self.center
-
+    def _calculate_relative_homographies(self, parents):
         # Calculate each homography from the source to the destination
+        c = self.center
         next_H = []
         for src_idx, dst_idx in enumerate(parents):
             if dst_idx < 0 or src_idx == c:
@@ -245,8 +244,11 @@ class ImageStitcher:
             H = self._find_homography(src, dst, matches, swap=swap)
             next_H.append(H)
 
+    def _calculate_total_homographies(self, parents, next_H):
+        """Calculate the full homography each picture will have for the final image"""
         # Now that we have the homographies from each to its next-to-center,
         # calculate relative to the center
+        c = self.center
         total_H = [None] * len(parents)
         total_H[c] = next_H[c]
         path = []
