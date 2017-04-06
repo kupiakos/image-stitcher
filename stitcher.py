@@ -75,6 +75,16 @@ def paste_image(base, img, shift):
     base[dest_slice] = dest
 
 
+def color_stats(lab_image, mask=None):
+    """Get color stats of a L*a*b* image (mean, std-dev)"""
+    if mask is None:
+        # Image is always in 1 dimension to make it simpler
+        lab_image = lab_image.reshape(-1, lab_image.shape[-1])
+    else:
+        lab_image = lab_image[mask.nonzero()]
+    return lab_image.mean(axis=0), lab_image.std(axis=0)
+
+
 def imshow(img, title=None, figsize=None, **kwargs):
     if figsize is None:
         plt.plot()
