@@ -125,6 +125,7 @@ class ImageStitcher:
         self._center = None
         self._current_edge_matrix = None
         self.debug = False
+        self.correct_colors = False
 
         update_defaults(self, kwargs)
 
@@ -171,6 +172,8 @@ class ImageStitcher:
         all_new_corners = self._calculate_new_corners(Hs)
         base_shift, base_size = np.array(self._calculate_bounds(all_new_corners))
         order = self._calculate_draw_order(parents)
+        if self.correct_colors:
+            self._correct_colors(parents, next_H, order[1::-1])
         canvas = np.zeros((base_size[1], base_size[0], 4), dtype=np.uint8)
         for i in order:
             image = self._images[i]
@@ -201,6 +204,41 @@ class ImageStitcher:
             raise ValueError('Image(s) %s could not be stitched' % ','.join(
                 self._images[img].name for img in np.where(groups != most_common)[0]
             ))
+
+    def _correct_colors(self, parents, next_H, order):
+        log.debug('Recoloring in order %s', ','.join(self._images[i].name for i in order))
+        labs = [cv2.cvtColor(i.image, cv2.COLOR_RGB2LAB).astype(np.float32) for i in self._images]
+        for dst_idx in order:
+            assert dst_idx != self.center
+            src_idx = parents[dst_idx]
+            src = self._images[src_idx]
+            dst = self._images[dst_idx]
+            log.debug('Color Correcting %s => %s', src.name, dst.name)
+            src, dst = src.image, dst.image
+            src_mask = np.zeros(src.shape[:2], dtype=np.uint8)
+            dst_mask = np.zeros(src.shape[:2], dtype=np.uint8)
+
+            H = next_H[src_idx]
+            src_corners = cv2.perspectiveTransform(
+                image_corners(dst).reshape(1, 4, 2), cv2.invert(H)[1])
+            dst_corners = cv2.perspectiveTransform(image_corners(src).reshape(1, 4, 2), H)
+
+            cv2.fillPoly(src_mask, np.rint(src_corners).astype(int), 255)
+            cv2.fillPoly(dst_mask, np.rint(dst_corners).astype(int), 255)
+
+            src_lab = labs[src_idx]
+            dst_lab = labs[dst_idx]
+            # Probably a better way to do this
+            # Adapted from http://www.pyimagesearch.com/2014/06/30/super-fast-color-transfer-images/
+            src_mean, src_std = color_stats(src_lab, mask=src_mask)
+            dst_mean, dst_std = color_stats(dst_lab, mask=dst_mask)
+            dst_lab[:] = ((dst_lab - dst_mean) * (dst_std / src_std)) + src_mean
+
+        for image, lab in zip(self._images, labs):
+            lab = np.clip(lab, 0, 255).astype(np.uint8)
+            image.image[:] = cv2.merge(
+                cv2.split(cv2.cvtColor(lab, cv2.COLOR_LAB2RGB)) +
+                [image.image[..., 3]])
 
     def _calculate_new_corners(self, Hs) -> List[np.array]:
         all_new_corners = []
