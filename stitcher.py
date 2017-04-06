@@ -19,9 +19,7 @@ try:
     feature_finder = cv2.xfeatures2d.SIFT_create()
     matcher = cv2.BFMatcher_create(cv2.NORM_L2)
 except AttributeError:
-    log.warning('You do not have OpenCV SIFT support installed, falling back to ORB (untested)')
-    feature_finder = cv2.ORB_create()
-    matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True)
+    raise ImportError('You do not have OpenCV SIFT support installed')
 
 
 def update_defaults(obj, kwargs):
