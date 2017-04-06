@@ -429,14 +429,19 @@ def main():
         '-m', '--match-threshold', default=10, type=int,
         help='The required number of features matches for two images to be considered "stitchable"')
     parser.add_argument(
-        '-c', '--color-correction', action='store_true',
+        '-c', '--correct-colors', action='store_true',
         help='Enable color correction in the resulting output image')
     args = parser.parse_args()
 
     if args.verbosity > 0:
         log.setLevel(logging.DEBUG if args.verbosity > 1 else logging.INFO)
 
-    stitch = ImageStitcher()
+    stitch = ImageStitcher(
+        debug=args.debug,
+        ratio_threshold=args.ratio_threshold,
+        match_threshold=args.match_threshold,
+        correct_colors=args.correct_colors,
+    )
     if args.base is not None:
         stitch.center = args.base
     for infile in args.input:
