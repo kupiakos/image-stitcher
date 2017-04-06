@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Licensed under the MIT License (c) 2017 Kevin Haroldsen
 
+import os
 import math
 import logging
 from typing import Union, List, Optional, Tuple
@@ -133,7 +134,7 @@ class ImageStitcher:
         """Add an image to the current stitching process. Image must be RGB(A)"""
         if isinstance(image, str):
             if name is not None:
-                name = image
+                name = os.path.splitext(os.path.split(image)[1])[0]
             image = cv2.cvtColor(cv2.imread(image), cv2.COLOR_BGR2RGBA)
         if image.shape[-1] == 3:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2RGBA)
