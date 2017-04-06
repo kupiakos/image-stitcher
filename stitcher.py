@@ -4,6 +4,7 @@
 import os
 import math
 import logging
+import argparse
 from typing import Union, List, Optional, Tuple
 
 import cv2
@@ -401,3 +402,52 @@ class ImageStitcher:
             log.info('%s <=> %s (score %d)', src.name, dst.name, len(good))
             return good
         return None
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Connects separate images in a panoramic style')
+    parser.add_argument(
+        'input', nargs='+',
+        help='The input image files')
+    parser.add_argument(
+        '-o', required=True, dest='output',
+        help='Where to put the resulting stitched image')
+    parser.add_argument(
+        '-v', action='count', dest='verbosity', default=0,
+        help='Increase the logging verbosity, can be used multiple times')
+    parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Debug mode, shows intermediate steps for images')
+    parser.add_argument(
+        '-r', '--ratio-threshold', default=.7, type=float,
+        help='The required distance ratio between neighboring feature matches.'
+        'Lower means more lenient matching. Default 0.7.')
+    parser.add_argument(
+        '-b', '--base', type=int,
+        help='Specify the index of the base image (that the other images will morph to)')
+    parser.add_argument(
+        '-m', '--match-threshold', default=10, type=int,
+        help='The required number of features matches for two images to be considered "stitchable"')
+    parser.add_argument(
+        '-c', '--color-correction', action='store_true',
+        help='Enable color correction in the resulting output image')
+    args = parser.parse_args()
+
+    if args.verbosity > 0:
+        log.setLevel(logging.DEBUG if args.verbosity > 1 else logging.INFO)
+
+    stitch = ImageStitcher()
+    if args.base is not None:
+        stitch.center = args.base
+    for infile in args.input:
+        stitch.add_image(infile)
+    result = stitch.stitch()
+
+    if args.debug:
+        imshow(result, title='Final Result')
+
+    cv2.imwrite(args.output, cv2.cvtColor(result, cv2.COLOR_RGBA2BGRA))
+
+
+if __name__ == '__main__':
+    main()
