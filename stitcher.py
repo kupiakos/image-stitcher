@@ -253,6 +253,7 @@ class ImageStitcher:
             src, dst = self._images[src_idx], self._images[dst_idx]
             H = self._find_homography(src, dst, matches, swap=swap)
             next_H.append(H)
+        return next_H
 
     def _calculate_total_homographies(self, parents, next_H):
         """Calculate the full homography each picture will have for the final image"""
