@@ -218,16 +218,24 @@ class ImageStitcher:
             log.debug('Color Correcting %s => %s', src.name, dst.name)
             src, dst = src.image, dst.image
             src_mask = np.zeros(src.shape[:2], dtype=np.uint8)
-            dst_mask = np.zeros(src.shape[:2], dtype=np.uint8)
+            dst_mask = np.zeros(dst.shape[:2], dtype=np.uint8)
 
-            H = next_H[src_idx]
-            src_corners = cv2.perspectiveTransform(
-                image_corners(dst).reshape(1, 4, 2), cv2.invert(H)[1])
-            dst_corners = cv2.perspectiveTransform(image_corners(src).reshape(1, 4, 2), H)
+            H = next_H[dst_idx]
+            src_corners = cv2.perspectiveTransform(image_corners(dst).reshape(1, 4, 2), H)
+            dst_corners = cv2.perspectiveTransform(
+                image_corners(src).reshape(1, 4, 2), cv2.invert(H)[1])
+            log.debug('Using relative H:\n%s', H)
+            log.debug('Src mask corners:\n%s', src_corners)
+            log.debug('Dst mask corners:\n%s', dst_corners)
 
             cv2.fillPoly(src_mask, np.rint(src_corners).astype(int), 255)
             cv2.fillPoly(dst_mask, np.rint(dst_corners).astype(int), 255)
 
+            if self.debug:
+                imshow(src_mask)
+                imshow(cv2.bitwise_and(src, src, mask=src_mask))
+                imshow(dst_mask)
+                imshow(cv2.bitwise_and(dst, dst, mask=dst_mask))
             src_lab = labs[src_idx]
             dst_lab = labs[dst_idx]
             # Probably a better way to do this
