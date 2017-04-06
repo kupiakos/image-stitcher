@@ -121,7 +121,7 @@ class ImageStitcher:
         self._images = []
 
         self.ratio_threshold = 0.7
-        self.matches_threshold = 10
+        self.match_threshold = 10
         self._center = None
         self._current_edge_matrix = None
         self.debug = False
@@ -396,7 +396,7 @@ class ImageStitcher:
                 title='%s matched with %s' % (src.name, dst.name), figsize=(10, 10)
             )
         log.debug('%d features matched, %d of which are good', len(matches), len(good))
-        if len(good) >= self.matches_threshold:
+        if len(good) >= self.match_threshold:
             log.info('%s <=> %s (score %d)', src.name, dst.name, len(good))
             return good
         return None
