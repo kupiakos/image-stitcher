@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Licensed under the MIT License (c) 2017 Kevin Haroldsen
+# Licensed under the MIT License (c) 2017 Alyssa Haroldsen
 
 import os
 import math
